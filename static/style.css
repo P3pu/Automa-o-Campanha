@@ -26,8 +26,26 @@ h1 {
     max-width: 680px;
 }
 
+form {
+    display: grid;
+    gap: 8px;
+}
+
 label {
     font-weight: 700;
+}
+
+input,
+button {
+    font: inherit;
+}
+
+.linha-evento {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) auto;
+    gap: 12px;
+    align-items: stretch;
+    max-width: 980px;
 }
 
 input {
@@ -45,6 +63,29 @@ input:focus {
     outline: 3px solid #bfdbfe;
 }
 
+.acoes-exportacao {
+    display: flex;
+    gap: 8px;
+}
+
+button {
+    border: 1px solid #2563eb;
+    border-radius: 6px;
+    padding: 0 14px;
+    color: #ffffff;
+    background: #2563eb;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+button:hover {
+    background: #1d4ed8;
+}
+
+button:focus {
+    outline: 3px solid #bfdbfe;
+}
+
 .ajuda {
     margin: 0;
     color: #4b5563;
@@ -56,4 +97,18 @@ input:focus {
     margin: 16px 0 0;
     color: #991b1b;
     font-size: 14px;
+}
+
+@media (max-width: 760px) {
+    .linha-evento {
+        grid-template-columns: 1fr;
+    }
+
+    .acoes-exportacao {
+        flex-wrap: wrap;
+    }
+
+    button {
+        min-height: 44px;
+    }
 }

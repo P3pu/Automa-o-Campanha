@@ -10,9 +10,10 @@
     <main>
         <h1>Portal Campanha</h1>
 
-        <form method="get">
-            <div class="campo-evento">
-                <label for="evento_magento">Evento Magento</label>
+        <form method="post">
+            <label for="evento_magento">Evento Magento</label>
+
+            <div class="linha-evento">
                 <input
                     id="evento_magento"
                     name="evento_magento"
@@ -26,6 +27,18 @@
                         <option value="{{ evento.id }} - {{ evento.nome }}{% if evento.data %} - {{ evento.data }}{% endif %}"></option>
                     {% endfor %}
                 </datalist>
+
+                <div class="acoes-exportacao">
+                    <button type="submit" formaction="{{ url_for('exportar_dados_brutos') }}">
+                        Exportar dados brutos
+                    </button>
+                    <button type="submit" formaction="{{ url_for('exportar_dados_limpos') }}">
+                        Exportar dados limpos
+                    </button>
+                </div>
+            </div>
+
+            <div class="campo-evento">
                 <p class="ajuda">{{ eventos|length }} evento(s) carregado(s) do Magento.</p>
             </div>
         </form>

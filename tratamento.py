@@ -1,39 +1,83 @@
-from database.queries import buscar_dados_magento
+from pathlib import Path
+
 import pandas as pd
-from pathlib import Path 
 
-filtro_Eventos_Prime = [48133]
- 
-dados = buscar_dados_magento(filtro_Eventos_Prime)
-
-colums = ["N. Peito", "Local", "SKU DO EVENTO ", "ID Evento", "Evento", 
-          "Local Inscrição", "Balcão", "Protocolo", "ID Inscrição", "Data Evento", 
-          "Data Pedido", "Status Pedido", "Status Confirmado", "Valor", "Modalidade", 
-          "Modalidade Ajustada", "Categoria", "Assinante", "Pelotão", "ID Usuario", 
-          "Nome inscrição", "Idade", "E-mail", "TELEFONE", "Documento", "Sexo", "Estado", 
-          "Cidade", "Personalização", "Tamanho Camiseta", "Produtos", "Cupom", "Etiqueta", 
-          "Classificacao Cupom"]
+from database.queries import buscar_dados_magento
 
 
-df = pd.DataFrame(dados, columns=colums)
+COLUNAS_MAGENTO = [
+    "N. Peito",
+    "Local",
+    "SKU DO EVENTO ",
+    "ID Evento",
+    "Evento",
+    "Local Inscrição",
+    "Balcão",
+    "Protocolo",
+    "ID Inscrição",
+    "Data Evento",
+    "Data Pedido",
+    "Status Pedido",
+    "Status Confirmado",
+    "Valor",
+    "Modalidade",
+    "Modalidade Ajustada",
+    "Categoria",
+    "Assinante",
+    "Pelotão",
+    "ID Usuario",
+    "Nome inscrição",
+    "Idade",
+    "E-mail",
+    "TELEFONE",
+    "Documento",
+    "Sexo",
+    "Estado",
+    "Cidade",
+    "Personalização",
+    "Tamanho Camiseta",
+    "Produtos",
+    "Cupom",
+    "Etiqueta",
+    "Classificacao Cupom",
+]
 
-valores_remover_Etiqueta = ["cortesia","corteisa","cortesias","grupos","grupos","company","teste","testes"]
-valores_remover_Cupom = ["cortesia","grupos","grupo","teste","testes"]
-valores_remover_Email = ["@nortemkt.com","@ativo.com","@cscdoesporte.com","@test.com","@teste","teste","testes","grupo","grupos"]
-valores_remover_Categoria = ["cortesia","cortesias","grupos","company","grupo","saude corporativa","corporativa","patrocinador","teste","testes"]
-valores_remover_Evento = ["cortesia","cortesias","grupos","grupo","teste","testes"]
+VALORES_REMOVER_ETIQUETA = [
+    "cortesia",
+    "corteisa",
+    "cortesias",
+    "grupos",
+    "company",
+    "teste",
+    "testes",
+]
+VALORES_REMOVER_CUPOM = ["cortesia", "grupos", "grupo", "teste", "testes"]
+VALORES_REMOVER_EMAIL = [
+    "@nortemkt.com",
+    "@ativo.com",
+    "@cscdoesporte.com",
+    "@test.com",
+    "@teste",
+    "teste",
+    "testes",
+    "grupo",
+    "grupos",
+]
+VALORES_REMOVER_CATEGORIA = [
+    "cortesia",
+    "cortesias",
+    "grupos",
+    "company",
+    "grupo",
+    "saude corporativa",
+    "corporativa",
+    "patrocinador",
+    "teste",
+    "testes",
+]
+VALORES_REMOVER_EVENTO = ["cortesia", "cortesias", "grupos", "grupo", "teste", "testes"]
 
-
-# Remove Grupos e Cortesias
-df = df[~df["Etiqueta"].str.lower().str.contains("|".join(valores_remover_Etiqueta))]
-df = df[~df["Cupom"].str.lower().str.contains("|".join(valores_remover_Cupom))]
-#df = df[~df["Cupom"].astype(str).str.strip().str.lower().str.startswith("gr", na=False)]
-df = df[~df["E-mail"].str.lower().str.contains("|".join(valores_remover_Email))]
-df = df[~df["Categoria"].str.lower().str.contains("|".join(valores_remover_Categoria))]
-df = df[~df["Evento"].str.lower().str.contains("|".join(valores_remover_Evento))]
-
-df["Estado"] = df["Estado"].str.strip()
-df["Estado"] = df["Estado"].replace({
+ESTADOS_PARA_UF = {
     "Acre": "AC",
     "Alagoas": "AL",
     "Amapá": "AP",
@@ -60,18 +104,47 @@ df["Estado"] = df["Estado"].replace({
     "Santa Catarina": "SC",
     "São Paulo": "SP",
     "Sergipe": "SE",
-    "Tocantins": "TO"
-})            
+    "Tocantins": "TO",
+}
 
 
-# Apagar as linhas de Local Inscrição e Balcão que contém qualquer valor
-df = df[df["Local Inscrição"].isna()]
-df = df[df["Balcão"].isna()]
+def montar_dataframe_magento(dados):
+    return pd.DataFrame(dados, columns=COLUNAS_MAGENTO)
 
-# Salva o arquivo tratado em Excel no diretório de Downloads
-download_path = Path.home() / "Downloads" / 'tratamento.xlsx'
-df.to_excel(download_path, index=False)
-print(f"Arquivo salvo em: {download_path}") 
 
-print(len(df))
-print(df.tail(10))
+def limpar_dados_magento(dados):
+    df = montar_dataframe_magento(dados)
+
+    df = df[~df["Etiqueta"].str.lower().str.contains("|".join(VALORES_REMOVER_ETIQUETA), na=False)]
+    df = df[~df["Cupom"].str.lower().str.contains("|".join(VALORES_REMOVER_CUPOM), na=False)]
+    df = df[~df["E-mail"].str.lower().str.contains("|".join(VALORES_REMOVER_EMAIL), na=False)]
+    df = df[~df["Categoria"].str.lower().str.contains("|".join(VALORES_REMOVER_CATEGORIA), na=False)]
+    df = df[~df["Evento"].str.lower().str.contains("|".join(VALORES_REMOVER_EVENTO), na=False)]
+
+    df["Estado"] = df["Estado"].str.strip()
+    df["Estado"] = df["Estado"].replace(ESTADOS_PARA_UF)
+
+    df = df[df["Local Inscrição"].isna()]
+    df = df[df["Balcão"].isna()]
+
+    return df
+
+
+def gerar_dados_limpos_magento(id_evento):
+    dados = buscar_dados_magento(id_evento)
+    return limpar_dados_magento(dados)
+
+
+def salvar_dados_limpos_downloads(id_evento):
+    df = gerar_dados_limpos_magento(id_evento)
+    download_path = Path.home() / "Downloads" / "tratamento.xlsx"
+    df.to_excel(download_path, index=False)
+    return download_path, df
+
+
+if __name__ == "__main__":
+    filtro_eventos_prime = [48133]
+    caminho, df = salvar_dados_limpos_downloads(filtro_eventos_prime)
+    print(f"Arquivo salvo em: {caminho}")
+    print(len(df))
+    print(df.tail(10))
