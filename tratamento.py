@@ -2,9 +2,9 @@ from database.queries import buscar_dados_magento
 import pandas as pd
 from pathlib import Path 
 
-Eventos_Prime = [48133]
+filtro_Eventos_Prime = [48133]
  
-dados = buscar_dados_magento(Eventos_Prime)
+dados = buscar_dados_magento(filtro_Eventos_Prime)
 
 colums = ["N. Peito", "Local", "SKU DO EVENTO ", "ID Evento", "Evento", 
           "Local Inscrição", "Balcão", "Protocolo", "ID Inscrição", "Data Evento", 
@@ -31,7 +31,6 @@ df = df[~df["Cupom"].str.lower().str.contains("|".join(valores_remover_Cupom))]
 df = df[~df["E-mail"].str.lower().str.contains("|".join(valores_remover_Email))]
 df = df[~df["Categoria"].str.lower().str.contains("|".join(valores_remover_Categoria))]
 df = df[~df["Evento"].str.lower().str.contains("|".join(valores_remover_Evento))]
-
 
 df["Estado"] = df["Estado"].str.strip()
 df["Estado"] = df["Estado"].replace({
@@ -68,7 +67,6 @@ df["Estado"] = df["Estado"].replace({
 # Apagar as linhas de Local Inscrição e Balcão que contém qualquer valor
 df = df[df["Local Inscrição"].isna()]
 df = df[df["Balcão"].isna()]
-
 
 # Salva o arquivo tratado em Excel no diretório de Downloads
 download_path = Path.home() / "Downloads" / 'tratamento.xlsx'
