@@ -4,7 +4,7 @@ from flask import Flask, redirect, render_template, request, send_file, url_for
 import pandas as pd
 
 from database.queries import buscar_dados_magento, obter_eventos_magento
-from tratamento import gerar_dados_limpos_magento, montar_dataframe_magento
+from tratamento import gerar_planilhas_limpeza_magento, montar_dataframe_magento
 
 app = Flask(__name__)
 
@@ -62,10 +62,15 @@ def _formatar_nome_exportacao(ids_eventos):
 
 
 def _responder_excel(df, nome_arquivo):
+    return _responder_excel_abas({nome_arquivo.removesuffix(".xlsx")[:31]: df}, nome_arquivo)
+
+
+def _responder_excel_abas(planilhas, nome_arquivo):
     arquivo = BytesIO()
 
     with pd.ExcelWriter(arquivo, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False)
+        for nome_aba, df in planilhas.items():
+            df.to_excel(writer, sheet_name=nome_aba[:31], index=False)
 
     arquivo.seek(0)
     return send_file(
@@ -120,9 +125,9 @@ def exportar_dados_limpos():
     if not ids_eventos:
         return redirect(url_for('index'))
 
-    df = gerar_dados_limpos_magento(ids_eventos)
+    planilhas = gerar_planilhas_limpeza_magento(ids_eventos)
     sufixo = _formatar_nome_exportacao(ids_eventos)
-    return _responder_excel(df, f"dados_limpos_magento_{sufixo}.xlsx")
+    return _responder_excel_abas(planilhas, f"dados_limpos_magento_{sufixo}.xlsx")
 
 
 if __name__ == '__main__':
