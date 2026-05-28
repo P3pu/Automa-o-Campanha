@@ -42,7 +42,7 @@ button {
 
 .linha-evento {
     display: grid;
-    grid-template-columns: minmax(260px, 1fr) auto;
+    grid-template-columns: minmax(260px, 1fr) auto auto;
     gap: 12px;
     align-items: stretch;
     max-width: 980px;
@@ -82,8 +82,54 @@ button:hover {
     background: #1d4ed8;
 }
 
+button:disabled {
+    border-color: #cbd5e1;
+    color: #64748b;
+    background: #e5e7eb;
+    cursor: not-allowed;
+}
+
 button:focus {
     outline: 3px solid #bfdbfe;
+}
+
+.eventos-selecionados {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-width: 980px;
+    min-height: 36px;
+    margin-top: 4px;
+}
+
+.evento-selecionado {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 6px 8px 6px 10px;
+    background: #ffffff;
+}
+
+.evento-selecionado span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.remover-evento {
+    min-width: 28px;
+    min-height: 28px;
+    border-color: #cbd5e1;
+    padding: 0;
+    color: #334155;
+    background: #f8fafc;
+}
+
+.remover-evento:hover {
+    background: #e2e8f0;
 }
 
 .ajuda {

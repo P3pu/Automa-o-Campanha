@@ -133,18 +133,3 @@ def limpar_dados_magento(dados):
 def gerar_dados_limpos_magento(id_evento):
     dados = buscar_dados_magento(id_evento)
     return limpar_dados_magento(dados)
-
-
-def salvar_dados_limpos_downloads(id_evento):
-    df = gerar_dados_limpos_magento(id_evento)
-    download_path = Path.home() / "Downloads" / "tratamento.xlsx"
-    df.to_excel(download_path, index=False)
-    return download_path, df
-
-
-if __name__ == "__main__":
-    filtro_eventos_prime = [48133]
-    caminho, df = salvar_dados_limpos_downloads(filtro_eventos_prime)
-    print(f"Arquivo salvo em: {caminho}")
-    print(len(df))
-    print(df.tail(10))

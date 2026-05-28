@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal Campanha</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </head>
 <body>
     <main>
@@ -19,9 +20,12 @@
                     name="evento_magento"
                     type="search"
                     list="eventos_magento"
-                    placeholder="Pesquise por ID, nome ou data"
+                    placeholder="Pesquise ou digite IDs separados por vírgula"
                     autocomplete="off"
                 >
+                <button type="button" id="adicionar_evento">
+                    Adicionar evento
+                </button>
                 <datalist id="eventos_magento">
                     {% for evento in eventos %}
                         <option value="{{ evento.id }} - {{ evento.nome }}{% if evento.data %} - {{ evento.data }}{% endif %}"></option>
@@ -29,17 +33,22 @@
                 </datalist>
 
                 <div class="acoes-exportacao">
-                    <button type="submit" formaction="{{ url_for('exportar_dados_brutos') }}">
+                    <button type="submit" formaction="{{ url_for('exportar_dados_brutos') }}" disabled>
                         Exportar dados brutos
                     </button>
-                    <button type="submit" formaction="{{ url_for('exportar_dados_limpos') }}">
+                    <button type="submit" formaction="{{ url_for('exportar_dados_limpos') }}" disabled>
                         Exportar dados limpos
                     </button>
                 </div>
             </div>
 
+            <div id="eventos_selecionados" class="eventos-selecionados" aria-live="polite"></div>
+
             <div class="campo-evento">
-                <p class="ajuda">{{ eventos|length }} evento(s) carregado(s) do Magento.</p>
+                <p class="ajuda">
+                    {{ eventos|length }} evento(s) carregado(s) do Magento.
+                    Selecione eventos ou digite IDs separados por vírgula antes de exportar.
+                </p>
             </div>
         </form>
 

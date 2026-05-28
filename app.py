@@ -26,6 +26,41 @@ def _extrair_id_evento(valor_evento):
     return valor_evento.split("-", 1)[0].strip()
 
 
+def _extrair_ids_eventos(valor_eventos):
+    if not valor_eventos:
+        return []
+
+    ids_eventos = []
+
+    for valor_evento in valor_eventos.split(","):
+        id_evento = _extrair_id_evento(valor_evento.strip())
+
+        if id_evento:
+            ids_eventos.append(id_evento)
+
+    return ids_eventos
+
+
+def _obter_ids_eventos_formulario():
+    ids_eventos = [
+        id_evento.strip()
+        for id_evento in request.form.getlist('evento_magento_ids')
+        if id_evento.strip()
+    ]
+
+    if ids_eventos:
+        return ids_eventos
+
+    return _extrair_ids_eventos(request.form.get('evento_magento'))
+
+
+def _formatar_nome_exportacao(ids_eventos):
+    if len(ids_eventos) == 1:
+        return ids_eventos[0]
+
+    return f"{len(ids_eventos)}_eventos"
+
+
 def _responder_excel(df, nome_arquivo):
     arquivo = BytesIO()
 
@@ -67,25 +102,27 @@ def index():
 
 @app.route('/exportar/dados-brutos', methods=['POST'])
 def exportar_dados_brutos():
-    id_evento = _extrair_id_evento(request.form.get('evento_magento'))
+    ids_eventos = _obter_ids_eventos_formulario()
 
-    if not id_evento:
+    if not ids_eventos:
         return redirect(url_for('index'))
 
-    dados = buscar_dados_magento(id_evento)
+    dados = buscar_dados_magento(ids_eventos)
     df = montar_dataframe_magento(dados)
-    return _responder_excel(df, f"dados_brutos_magento_{id_evento}.xlsx")
+    sufixo = _formatar_nome_exportacao(ids_eventos)
+    return _responder_excel(df, f"dados_brutos_magento_{sufixo}.xlsx")
 
 
 @app.route('/exportar/dados-limpos', methods=['POST'])
 def exportar_dados_limpos():
-    id_evento = _extrair_id_evento(request.form.get('evento_magento'))
+    ids_eventos = _obter_ids_eventos_formulario()
 
-    if not id_evento:
+    if not ids_eventos:
         return redirect(url_for('index'))
 
-    df = gerar_dados_limpos_magento(id_evento)
-    return _responder_excel(df, f"dados_limpos_magento_{id_evento}.xlsx")
+    df = gerar_dados_limpos_magento(ids_eventos)
+    sufixo = _formatar_nome_exportacao(ids_eventos)
+    return _responder_excel(df, f"dados_limpos_magento_{sufixo}.xlsx")
 
 
 if __name__ == '__main__':
