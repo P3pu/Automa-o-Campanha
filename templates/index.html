@@ -4,67 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal Campanha</title>
-    <style>
-        :root {
-            color-scheme: light;
-            font-family: Arial, Helvetica, sans-serif;
-            color: #1f2937;
-            background: #f3f4f6;
-        }
-
-        body {
-            margin: 0;
-        }
-
-        main {
-            width: min(920px, calc(100% - 32px));
-            margin: 48px auto;
-        }
-
-        h1 {
-            margin: 0 0 24px;
-            font-size: 32px;
-            line-height: 1.2;
-        }
-
-        .campo-evento {
-            display: grid;
-            gap: 8px;
-            max-width: 680px;
-        }
-
-        label {
-            font-weight: 700;
-        }
-
-        input {
-            width: 100%;
-            box-sizing: border-box;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            padding: 12px 14px;
-            font-size: 16px;
-            background: #ffffff;
-        }
-
-        input:focus {
-            border-color: #2563eb;
-            outline: 3px solid #bfdbfe;
-        }
-
-        .ajuda {
-            margin: 0;
-            color: #4b5563;
-            font-size: 14px;
-        }
-
-        .erro {
-            max-width: 680px;
-            margin: 16px 0 0;
-            color: #991b1b;
-            font-size: 14px;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <main>
