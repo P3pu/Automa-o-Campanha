@@ -8,7 +8,7 @@ O Portal Campanha ajuda a preparar bases de inscritos de eventos, reduzindo trab
 
 A interface web permite:
 
-- Pesquisar eventos vindos da funcao `obter_eventos_magento()`.
+- Pesquisar eventos vindos da função `obter_eventos_magento()`.
 - Selecionar um ou mais eventos pela busca.
 - Informar varios IDs de evento separados por virgula.
 - Exportar dados brutos do Magento.
@@ -199,15 +199,6 @@ separar_dados_magento_por_limpeza(dados)
 gerar_dados_limpos_magento(id_evento)
 gerar_planilhas_limpeza_magento(id_evento)
 ```
-
-O script tambem pode ser executado diretamente:
-
-```bash
-python tratamento.py
-```
-
-Nesse modo, ele usa o filtro definido no bloco `if __name__ == "__main__":`.
-
 ## Observacoes
 
 - A pasta `templates/` guarda os arquivos HTML renderizados pelo Flask.
