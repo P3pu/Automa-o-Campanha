@@ -1,70 +1,148 @@
-# Automação de Estração e Limpeza de Dados
+# Portal Campanha
 
-## Descrição
-
-Projeto em Python para extrair dados de inscrições de eventos, consultar bancos Magento/Running Land e Ativo.com, aplicar regras de limpeza e gerar uma planilha Excel pronta para análise.
+Aplicacao Flask para consultar eventos do banco Magento/Running Land, selecionar um ou varios eventos e exportar planilhas Excel com dados brutos ou dados tratados.
 
 ## Sobre o Projeto
 
-Este projeto ajuda a automatizar a preparação de bases de inscritos, reduzindo trabalho manual e padronizando filtros importantes, como remoção de cortesias, grupos, testes e registros vindos de locais de inscrição específicos. Ele também normaliza informações como estado/UF e exporta o resultado final em formato `.xlsx`.
+O Portal Campanha ajuda a preparar bases de inscritos de eventos, reduzindo trabalho manual na consulta, limpeza e exportacao dos dados.
+
+A interface web permite:
+
+- Pesquisar eventos vindos da funcao `obter_eventos_magento()`.
+- Selecionar um ou mais eventos pela busca.
+- Informar varios IDs de evento separados por virgula.
+- Exportar dados brutos do Magento.
+- Exportar dados limpos com uma aba adicional contendo os registros removidos pelas regras de limpeza.
 
 ## Tecnologias Utilizadas
 
 - Python
+- Flask
 - Pandas
 - OpenPyXL
 - MySQL Connector/Python
 - python-dotenv
-- Flask, disponível nas dependências para evoluções com interface web ou API
+- HTML, CSS e JavaScript
 
-## Funcionalidades Principais
+## Estrutura do Projeto
 
-- Conexão com banco Magento/Running Land via variáveis de ambiente.
-- Conexão com banco Ativo.com via variáveis de ambiente.
-- Consulta de inscrições por ID de evento.
-- Listagem de eventos disponíveis nas bases Magento e Ativo.
-- Limpeza de registros de cortesia, grupos, testes e campanhas internas.
-- Normalização de nomes de estados para siglas UF.
-- Exportação do resultado tratado para Excel.
+```text
+portalCampanha/
+  app.py
+  tratamento.py
+  requirements.txt
+  README.MD
+  database/
+    conexao.py
+    queries.py
+  templates/
+    index.html
+  static/
+    style.css
+    script.js
+```
 
-## Pré-requisitos
+## Funcionalidades
+
+### Interface Web
+
+A tela principal esta em `templates/index.html` e usa arquivos estaticos em `static/`.
+
+O usuario pode:
+
+- Pesquisar um evento por ID, nome ou data.
+- Clicar em `Adicionar evento`.
+- Digitar IDs separados por virgula, por exemplo:
+
+```text
+48133, 48134, 48135
+```
+
+- Remover eventos selecionados antes de exportar.
+- Exportar a selecao como planilha Excel.
+
+### Exportar Dados Brutos
+
+O botao `Exportar dados brutos` chama a rota:
+
+```text
+POST /exportar/dados-brutos
+```
+
+Essa rota usa:
+
+```python
+buscar_dados_magento(ids_eventos)
+```
+
+O arquivo baixado contem os dados retornados diretamente da consulta Magento, organizados nas colunas definidas em `tratamento.py`.
+
+### Exportar Dados Limpos
+
+O botao `Exportar dados limpos` chama a rota:
+
+```text
+POST /exportar/dados-limpos
+```
+
+Essa rota usa:
+
+```python
+gerar_planilhas_limpeza_magento(ids_eventos)
+```
+
+O Excel gerado contem duas abas:
+
+- `Dados Limpos`: registros aprovados pelas regras de limpeza.
+- `Removidos`: registros removidos, com a coluna `Regra Remocao` indicando o motivo.
+
+Possiveis regras de remocao:
+
+- `Etiqueta`
+- `Cupom`
+- `E-mail`
+- `Categoria`
+- `Evento`
+- `Local Inscricao`
+- `Balcao`
+
+Se um registro cair em mais de uma regra, os motivos aparecem juntos, por exemplo:
+
+```text
+Cupom; E-mail; Categoria
+```
+
+## Pre-requisitos
 
 Antes de executar o projeto, tenha instalado:
 
 - Python 3.10 ou superior
 - Pip
-- Acesso aos bancos MySQL Magento/Running Land e/ou Ativo.com
-- Credenciais de banco configuradas em um arquivo `.env`
+- Acesso ao banco MySQL Magento/Running Land
+- Credenciais configuradas em um arquivo `.env`
 
-## Como Instalar e Executar
+## Configuracao
 
-1. Clone o repositório:
-
-```bash
-git clone <url-do-repositorio>
-cd portalCampanha
-```
-
-2. Crie e ative um ambiente virtual:
+1. Crie e ative o ambiente virtual:
 
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
 ```
 
-3. Instale as dependências:
+2. Instale as dependencias:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Configure as variáveis de ambiente:
+3. Copie o arquivo de exemplo:
 
 ```bash
 copy .env.example .env
 ```
 
-5. No arquivo `.env`, remova o sufixo `_EXEMPLO` dos nomes das variáveis e preencha os dados reais de conexão:
+4. Configure o `.env` com as credenciais reais:
 
 ```env
 DB_MAGENTO_HOST=seu_host_magento
@@ -79,48 +157,64 @@ DB_ATIVO_PASSWORD=sua_senha_ativo
 DB_ATIVO_DATABASE=nome_do_banco_ativo
 ```
 
-6. Ajuste os IDs de evento no arquivo `tratamento.py`, se necessário:
+## Como Executar Localmente
 
-```python
-Eventos_Prime = [48133]
+Com o ambiente virtual ativo, execute:
+
+```bash
+python -m flask --app app run --host 127.0.0.1 --port 5000
 ```
 
-7. Execute o script:
+Depois acesse:
+
+```text
+http://127.0.0.1:5000/
+```
+
+Tambem e possivel rodar diretamente:
+
+```bash
+python app.py
+```
+
+## Como Usar
+
+1. Abra `http://127.0.0.1:5000/`.
+2. Pesquise um evento no campo `Evento Magento`.
+3. Clique em `Adicionar evento`.
+4. Repita o processo para selecionar mais eventos, ou digite IDs separados por virgula.
+5. Clique em `Exportar dados brutos` ou `Exportar dados limpos`.
+6. O navegador baixara o arquivo `.xlsx` na pasta padrao de downloads.
+
+## Script de Tratamento
+
+O arquivo `tratamento.py` concentra as regras de montagem e limpeza dos dados.
+
+Principais funcoes:
+
+```python
+montar_dataframe_magento(dados)
+limpar_dados_magento(dados)
+separar_dados_magento_por_limpeza(dados)
+gerar_dados_limpos_magento(id_evento)
+gerar_planilhas_limpeza_magento(id_evento)
+```
+
+O script tambem pode ser executado diretamente:
 
 ```bash
 python tratamento.py
 ```
 
-Ao final da execução, o arquivo tratado será salvo na pasta Downloads do usuário com o nome `tratamento.xlsx`.
+Nesse modo, ele usa o filtro definido no bloco `if __name__ == "__main__":`.
 
-## Exemplos de Uso
+## Observacoes
 
-Para buscar inscrições do Magento diretamente no código:
+- A pasta `templates/` guarda os arquivos HTML renderizados pelo Flask.
+- A pasta `static/` guarda CSS e JavaScript servidos diretamente ao navegador.
+- O caminho dos arquivos estaticos e gerado no HTML com `url_for('static', filename='...')`.
+- A exportacao usa `send_file`, entao quem define a pasta final de download e o navegador.
 
-```python
-from database.queries import buscar_dados_magento
+## Licenca
 
-eventos = [48133]
-dados = buscar_dados_magento(eventos)
-
-print(f"Total de registros encontrados: {len(dados)}")
-```
-
-Para executar o fluxo completo de tratamento e gerar a planilha:
-
-```bash
-python tratamento.py
-```
-
-## Como Contribuir
-
-Contribuições são bem-vindas. Para colaborar:
-
-1. Abra uma issue descrevendo o problema ou melhoria.
-2. Crie uma branch para sua alteração.
-3. Faça commits claros e objetivos.
-4. Abra um pull request explicando o que foi alterado e como testar.
-
-## Licença
-
-Este projeto utiliza a licença MIT. Consulte o arquivo `LICENSE` para mais detalhes, quando disponível no repositório.
+Este projeto utiliza a licenca MIT. Consulte o arquivo `LICENSE` para mais detalhes.
