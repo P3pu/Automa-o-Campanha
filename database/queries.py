@@ -162,136 +162,124 @@ def buscar_dados_ativo(id_evento: str) -> list:
     Returns:
         Lista de tuplas com 15 campos na mesma ordem de COLUNAS_QUERY.
     """
+
+    ids_evento = _normalizar_ids_evento(id_evento)
+    placeholders = ", ".join(["%s"] * len(ids_evento))
+
     conn = conectar_bd_ativo()
     cursor = conn.cursor()
     query = f"""
-      SELECT
-            a.nr_peito as 'N. Peito',
-                "Ativo" as "Local",
-            b.id_campanha_salesforce AS 'SKU',
-            b.id_evento AS 'ID Evento',
-            b.ds_evento AS 'Evento',
-            CASE
-        WHEN c.fl_local_inscricao = '1' THEN
-            'Site'
-        WHEN c.fl_local_inscricao = '2' THEN
-            'Balcão'
-        WHEN c.fl_local_inscricao = '3' THEN
-            'Entrega'
-        ELSE
-            c.fl_local_inscricao
-        END AS 'Local Inscrição',
-            g.ds_nomebalcao as 'Balcão',
-            c.id_pedido AS 'Protocolo',
-            a.id_pedido_evento AS 'ID Inscrição',
-            date(b.dt_evento) AS 'Data Evento',
-                date(c.dt_pedido) AS 'Data Pedido',
-            d.ds_status AS 'Status Pedido',
-            p.`status` AS 'Status Inscrição',
-        q.nm_modalidade as "Modalidade",
-        h.ds_categoria as "Categoria",
-        IF ( a.fl_assinante = 1, "SIM", "NÃO" ) AS 'Assinante',
-        IF(
-        IF ( c.fl_local_inscricao = 1, g.pelotao, w.pelotao ) = NULL ,
-        'Branco' ,
-        IF ( c.fl_local_inscricao = 1, g.pelotao, w.pelotao ))
-        AS 'Pelotão',
-        IF (
-            c.fl_local_inscricao = 1,
-            g.id_usuario,
-            w.id_usuario
-        ) AS 'ID Usuario',
-        IF (
-            c.fl_local_inscricao = 1,
-            g.ds_nomecompleto,
-            w.ds_nome
-        ) AS 'Nome inscrição',
-        IF (
-            c.fl_local_inscricao = 1,
-        IF (
-            SUBSTRING_INDEX(g.ds_nome, " ", 1) = " ",
-            SUBSTRING_INDEX(g.ds_nome, " ", 2),
-            SUBSTRING_INDEX(g.ds_nome, " ", 1)
-        ),
-        SUBSTRING_INDEX(w.ds_nome, " ", 1)
-        ) AS 'Primeiro Nome',
-        IF (
-            c.fl_local_inscricao = 1,
-            g.ds_email,
-            w.ds_email
-        ) AS 'e-mail',
-        IF (
-            c.fl_local_inscricao = 1,
-            g.nr_telefone,
-            w.ds_telefone
-        ) AS 'Telefone',
-        IF (
-            c.fl_local_inscricao = 1,
-            g.nr_celular,
-            w.ds_celular
-        ) AS 'Celular',
-        IF (
-            c.fl_local_inscricao = 1,
-            YEAR (now()) - YEAR (g.dt_nascimento),
-            YEAR (now()) - YEAR (w.dt_nascimento)
-        ) AS 'Idade',
-        IF (c.fl_local_inscricao = 1,date(g.dt_nascimento),date(w.dt_nascimento)) AS 'Dt Nascimento',
-        IF (
-            c.fl_local_inscricao = 1,
-            g.nr_documento,
-            w.nr_documento
-        ) AS 'Documento',
-        IF (
-            c.fl_local_inscricao = 1,
-            g.fl_sexo,
-            w.fl_sexo
-        ) AS 'Sexo',
-        y.ds_cidade,
-        y.ds_estado,
-        concat(g.ds_endereco," ",g.nr_numero," ", g.ds_bairro) as "Endereço",
-        g.ds_cep,
-        a.nm_camiseta as "Personalização",
-        IF ( x.id_tamanho_camiseta = 2 , "BL", x.ds_tamanho ) AS 'Tamanho Camiseta',
-        (SELECT max(eql.ds_resposta) from sa_pedido_questionario pqa
-        LEFT JOIN sa_evento_questionario_limite eql on pqa.id_evento_questionario_limite = eql.id_evento_questionario_limite
-        where
-        a.id_pedido_evento = pqa.id_pedido_evento
-        and
-        eql.ds_resposta in ('Baby look', 'BL','P','M','G','GG')) as  'Produto'
-        FROM
-            sa_pedido_evento AS a
-        INNER JOIN sa_evento AS b ON b.id_evento = a.id_evento
-        INNER JOIN sa_pedido AS c ON c.id_pedido = a.id_pedido
-        INNER JOIN sa_pedido_status AS d ON d.id_pedido_status = c.id_pedido_status
-        LEFT JOIN sa_usuario AS g ON a.id_usuario = g.id_usuario
-        LEFT JOIN sa_modalidade_categoria AS h ON a.id_categoria = h.id_categoria
-        LEFT JOIN sa_status_detalhado AS p ON a.id_status_detalhado = p.id_status_detalhado
-        LEFT JOIN sa_evento_modalidade AS q ON a.id_modalidade = q.id_modalidade
-        LEFT JOIN sa_usuario_balcao AS w ON w.id_usuario = a.id_usuario_balcao
-        LEFT JOIN sa_cidade AS y ON g.id_cidade = y.id_cidade
-        LEFT JOIN sa_tamanho_camiseta AS x ON a.id_tamanho_camiseta = x.id_tamanho_camiseta
-        WHERE
-        b.id_evento IN ({id_evento}) AND
-            (
-            c.id_pedido_status = 2
-            OR (
-                c.fl_local_inscricao = 2
-                AND c.id_pedido_status = 1
-            )
-        ) and
-        IF (
-            c.fl_local_inscricao = 1,
-            g.id_usuario,
-            w.id_usuario
-        ) is not null
-        GROUP BY
-            a.id_pedido_evento
-        ORDER BY
-            b.id_evento, c.id_pedido;
+    SELECT /*! STRAIGHT_JOIN */
+    a.nr_peito                                               AS "N. Peito",
+    "Ativo"                                                  AS "Local",
+    b.id_campanha_salesforce                                 AS "SKU",
+    b.id_evento                                              AS "ID Evento",
+    b.ds_evento                                              AS "Evento",
+    CASE c.fl_local_inscricao
+        WHEN '1' THEN 'Site'
+        WHEN '2' THEN 'Balcão'
+        WHEN '3' THEN 'Entrega'
+        ELSE c.fl_local_inscricao
+    END                                                      AS "Local Inscrição",
+    g.ds_nomebalcao                                          AS "Balcão",
+    c.id_pedido                                              AS "Protocolo",
+    a.id_pedido_evento                                       AS "ID Inscrição",
+    DATE(b.dt_evento)                                        AS "Data Evento",
+    DATE(c.dt_pedido)                                        AS "Data Pedido",
+    d.ds_status                                              AS "Status Pedido",
+    p.`status`                                               AS "Status Inscrição",
+    a.nr_preco                                               AS "Valor",
+    q.nm_modalidade                                          AS "Modalidade",
+    q.nm_modalidade                                          AS "Modalidade Ajustada",
+    h.ds_categoria                                           AS "Categoria",
+    IF(a.fl_assinante = 1, 'SIM', 'NÃO')                     AS "Assinante",
+    CASE
+        WHEN IF(c.fl_local_inscricao = '1', g.pelotao, w.pelotao) IS NULL
+            THEN 'Branco'
+        ELSE IF(c.fl_local_inscricao = '1', g.pelotao, w.pelotao)
+    END                                                      AS "Pelotão",
+    IF(c.fl_local_inscricao = '1', g.id_usuario, w.id_usuario) AS "ID Usuario",
+    IF(c.fl_local_inscricao = '1', g.ds_nomecompleto, w.ds_nome) AS "Nome inscrição",
+    CASE
+        WHEN c.fl_local_inscricao = '1'
+            THEN vars.cur_year - YEAR(g.dt_nascimento)
+        ELSE vars.cur_year - YEAR(w.dt_nascimento)
+    END                                                      AS "Idade",
+    IF(c.fl_local_inscricao = '1', g.ds_email, w.ds_email)   AS "E-mail",
+    g.nr_documento                                           AS "Documento",
+    g.nr_telefone                                            AS "TELEFONE",
+    IF(c.fl_local_inscricao = '1', g.fl_sexo, w.fl_sexo)     AS "Sexo",
+    ''                                                       AS "Estado", -- Adicionado para alinhar com Magento
+    sc.ds_cidade                                             AS "Cidade",
+    a.nm_camiseta                                            AS "Personalização",
+    IF(x.id_tamanho_camiseta = 2, 'BL', x.ds_tamanho)        AS "Tamanho Camiseta",
+    COALESCE(prod.Produto, '')                               AS "Produtos",
+    e.nr_cupom                                               AS "Cupom",
+    ''                                                       AS "Etiqueta",
+    cd.en_cupom_classificacao                                AS "Classificação Cupom"
+
+FROM (
+    SELECT id_evento, ds_evento, id_campanha_salesforce, dt_evento
+    FROM sa_evento
+     WHERE dt_evento BETWEEN DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+                         AND DATE_ADD(CURDATE(), INTERVAL 6 MONTH)
+) AS b
+
+STRAIGHT_JOIN sa_pedido_evento AS a
+    ON a.id_evento = b.id_evento
+JOIN (
+    SELECT id_pedido, fl_local_inscricao, id_pedido_status, dt_pedido
+    FROM sa_pedido
+    WHERE id_pedido_status = 2
+       OR (fl_local_inscricao = 2 AND id_pedido_status = 1)
+) AS c
+    ON c.id_pedido = a.id_pedido
+JOIN sa_pedido_status AS d
+    ON d.id_pedido_status = c.id_pedido_status
+LEFT JOIN sa_usuario AS g
+    ON a.id_usuario = g.id_usuario
+LEFT JOIN sa_usuario_balcao AS w
+    ON a.id_usuario_balcao = w.id_usuario
+LEFT JOIN sa_modalidade_categoria AS h
+    ON a.id_categoria = h.id_categoria
+LEFT JOIN sa_status_detalhado AS p
+    ON a.id_status_detalhado = p.id_status_detalhado
+LEFT JOIN sa_evento_modalidade AS q
+    ON a.id_modalidade = q.id_modalidade
+LEFT JOIN sa_tamanho_camiseta AS x
+    ON a.id_tamanho_camiseta = x.id_tamanho_camiseta
+LEFT JOIN sa_cidade AS sc 
+    ON sc.id_cidade = g.id_cidade
+LEFT JOIN (
+    SELECT
+      pqa.id_pedido_evento,
+      MAX(eql.ds_resposta) AS Produto
+    FROM sa_pedido_questionario AS pqa
+    JOIN sa_evento_questionario_limite AS eql
+      ON pqa.id_evento_questionario_limite = eql.id_evento_questionario_limite
+      AND eql.ds_resposta IN ('Baby look','BL','P','M','G','GG')
+    GROUP BY pqa.id_pedido_evento
+) AS prod
+    ON prod.id_pedido_evento = a.id_pedido_evento
+LEFT JOIN sa_cupom_desconto_item AS e 
+    ON e.id_cupom_desconto_item = a.id_cupom_individual
+LEFT JOIN sa_cupom_desconto AS cd 
+    ON cd.id_cupom_desconto = e.id_cupom_desconto
+CROSS JOIN (
+    SELECT YEAR(CURDATE()) AS cur_year
+) AS vars
+WHERE
+    b.id_evento IN ({placeholders}) 
+    AND IF(c.fl_local_inscricao = '1', g.id_usuario, w.id_usuario) IS NOT NULL 
+GROUP BY
+    a.id_pedido_evento
+ORDER BY
+    b.id_evento,
+    c.id_pedido;
     """
     try:
         print(f"[Ativo] Executando query para {len(str(id_evento).split(','))} evento(s): {id_evento}")
-        cursor.execute(query)
+        cursor.execute(query, ids_evento)
         dados = cursor.fetchall()
         print(f"[Ativo] {len(dados)} linha(s) retornada(s).")
         return dados

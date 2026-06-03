@@ -1,0 +1,24 @@
+Local Ajustado = 
+SWITCH(
+    TRUE(),
+
+    // 1ª CONDIÇÃO (Grupos/Company/Saude Corportativa): Retorna "Company" se houver "Grupos" em qualquer uma das 3 colunas.
+    CONTAINSSTRING(Tb_Base[Categoria], "Grupos") || 
+    CONTAINSSTRING(Tb_Base[Etiqueta], "GRUPOS") || 
+    CONTAINSSTRING(Tb_Base[Classificacao Cupom], "Grupos"), 
+    "Company",
+
+    // 2ª CONDIÇÃO (Cortesias): Agrupa todos os critérios que resultam em "Cortesia".
+    CONTAINSSTRING(Tb_Base[Categoria], "Cortesia") || 
+    CONTAINSSTRING(Tb_Base[Categoria], "Patrocinador") ||
+    CONTAINSSTRING(Tb_Base[Local Inscrição], "Balcão") ||
+    CONTAINSSTRING(Tb_Base[Etiqueta], "Cortesia"),
+    "Cortesia",
+
+    // 3ª CONDIÇÃO (Vazio): Se o local estiver em branco, assume que foi pelo Site.
+    ISBLANK(Tb_Base[Local Inscrição]), 
+    "Site",
+
+    // VALOR PADRÃO: Se não cair em nada anterior, mantém o valor original.
+    Tb_Base[Local Inscrição] 
+)
