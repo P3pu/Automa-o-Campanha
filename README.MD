@@ -1,18 +1,16 @@
 # Portal Campanha
 
-Aplicacao Flask para consultar eventos do banco Magento/Running Land, selecionar um ou varios eventos e exportar planilhas Excel com dados brutos ou dados tratados.
+Aplicacao Flask para consultar eventos dos bancos Magento/Running Land e Ativo, selecionar um ou varios eventos manualmente e exportar planilhas Excel com dados brutos, dados limpos ou cruzamentos por SKU.
 
 ## Sobre o Projeto
 
-O Portal Campanha ajuda a preparar bases de inscritos de eventos, reduzindo trabalho manual na consulta, limpeza e exportacao dos dados.
+O Portal Campanha ajuda a preparar bases de inscritos de eventos, reduzindo trabalho manual na consulta, limpeza, comparacao e exportacao dos dados.
 
-A interface web permite:
+A interface web possui uma sidebar com tres fluxos:
 
-- Pesquisar eventos vindos da função `obter_eventos_magento()`.
-- Selecionar um ou mais eventos pela busca.
-- Informar varios IDs de evento separados por virgula.
-- Exportar dados brutos do Magento.
-- Exportar dados limpos com uma aba adicional contendo os registros removidos pelas regras de limpeza.
+- `Magento`: consulta eventos Magento, exporta dados brutos e dados limpos.
+- `Ativo`: consulta eventos Ativo e exporta dados brutos.
+- `Magento + Ativo`: consulta eventos dos dois bancos e cruza os inscritos pelo SKU.
 
 ## Tecnologias Utilizadas
 
@@ -44,59 +42,92 @@ portalCampanha/
 
 ## Funcionalidades
 
-### Interface Web
+### Selecionar Eventos
 
-A tela principal esta em `templates/index.html` e usa arquivos estaticos em `static/`.
+Em cada fluxo, o usuario pode:
 
-O usuario pode:
-
-- Pesquisar um evento por ID, nome ou data.
+- Pesquisar evento por ID, nome ou data.
 - Clicar em `Adicionar evento`.
-- Digitar IDs separados por virgula, por exemplo:
+- Informar varios IDs separados por virgula:
 
 ```text
 48133, 48134, 48135
 ```
 
 - Remover eventos selecionados antes de exportar.
-- Exportar a selecao como planilha Excel.
 
-### Exportar Dados Brutos
+### Magento
 
-O botao `Exportar dados brutos` chama a rota:
-
-```text
-POST /exportar/dados-brutos
-```
-
-Essa rota usa:
+Usa:
 
 ```python
+obter_eventos_magento()
 buscar_dados_magento(ids_eventos)
 ```
 
-O arquivo baixado contem os dados retornados diretamente da consulta Magento, organizados nas colunas definidas em `tratamento.py`.
-
-### Exportar Dados Limpos
-
-O botao `Exportar dados limpos` chama a rota:
+Rotas:
 
 ```text
+POST /exportar/dados-brutos
 POST /exportar/dados-limpos
 ```
 
-Essa rota usa:
+Exportacoes:
+
+- `dados_brutos_magento_*.xlsx`: dados retornados diretamente do Magento.
+- `dados_limpos_magento_*.xlsx`: Excel com as abas `Dados Limpos` e `Removidos`.
+
+A aba `Removidos` possui a coluna `Regra Remocao`, indicando por qual regra o registro foi retirado.
+
+### Ativo
+
+Usa:
 
 ```python
-gerar_planilhas_limpeza_magento(ids_eventos)
+obter_eventos_ativos()
+buscar_dados_ativo(ids_eventos)
 ```
 
-O Excel gerado contem duas abas:
+Rota:
 
-- `Dados Limpos`: registros aprovados pelas regras de limpeza.
-- `Removidos`: registros removidos, com a coluna `Regra Remocao` indicando o motivo.
+```text
+POST /exportar/ativo/dados-brutos
+```
 
-Possiveis regras de remocao:
+Exportacao:
+
+- `dados_brutos_ativo_*.xlsx`: dados brutos retornados do Ativo.
+
+Por enquanto, o Ativo nao aplica regras de limpeza.
+
+### Magento + Ativo
+
+Neste fluxo, o usuario seleciona manualmente eventos Magento e eventos Ativo. Depois, o sistema:
+
+1. Busca inscritos do Magento.
+2. Busca inscritos do Ativo.
+3. Converte as duas bases para DataFrames.
+4. Padroniza a coluna `SKU`.
+5. Faz um `outer merge` pelo SKU.
+6. Exporta abas de auditoria.
+
+Rota:
+
+```text
+POST /exportar/magento-ativo
+```
+
+Abas exportadas:
+
+- `Magento Bruto`: todos os registros retornados do Magento.
+- `Ativo Bruto`: todos os registros retornados do Ativo.
+- `Magento + Ativo`: resultado do cruzamento por SKU.
+- `Somente Magento`: registros sem correspondencia no Ativo.
+- `Somente Ativo`: registros sem correspondencia no Magento.
+
+## Regras de Limpeza Magento
+
+As regras atuais removem registros por:
 
 - `Etiqueta`
 - `Cupom`
@@ -106,7 +137,7 @@ Possiveis regras de remocao:
 - `Local Inscricao`
 - `Balcao`
 
-Se um registro cair em mais de uma regra, os motivos aparecem juntos, por exemplo:
+Se um registro cair em mais de uma regra, os motivos aparecem juntos:
 
 ```text
 Cupom; E-mail; Categoria
@@ -118,7 +149,7 @@ Antes de executar o projeto, tenha instalado:
 
 - Python 3.10 ou superior
 - Pip
-- Acesso ao banco MySQL Magento/Running Land
+- Acesso aos bancos MySQL Magento/Running Land e Ativo
 - Credenciais configuradas em um arquivo `.env`
 
 ## Configuracao
@@ -177,34 +208,36 @@ Tambem e possivel rodar diretamente:
 python app.py
 ```
 
-## Como Usar
+## Principais Funcoes
 
-1. Abra `http://127.0.0.1:5000/`.
-2. Pesquise um evento no campo `Evento Magento`.
-3. Clique em `Adicionar evento`.
-4. Repita o processo para selecionar mais eventos, ou digite IDs separados por virgula.
-5. Clique em `Exportar dados brutos` ou `Exportar dados limpos`.
-6. O navegador baixara o arquivo `.xlsx` na pasta padrao de downloads.
+Em `database/queries.py`:
 
-## Script de Tratamento
+```python
+obter_eventos_magento()
+obter_eventos_ativos()
+buscar_dados_magento(id_evento)
+buscar_dados_ativo(id_evento)
+```
 
-O arquivo `tratamento.py` concentra as regras de montagem e limpeza dos dados.
-
-Principais funcoes:
+Em `tratamento.py`:
 
 ```python
 montar_dataframe_magento(dados)
-limpar_dados_magento(dados)
+montar_dataframe_ativo(dados)
 separar_dados_magento_por_limpeza(dados)
-gerar_dados_limpos_magento(id_evento)
 gerar_planilhas_limpeza_magento(id_evento)
+gerar_dados_brutos_ativo(id_evento)
+juntar_magento_ativo(df_magento, df_ativo)
+gerar_planilhas_magento_ativo(ids_magento, ids_ativo)
 ```
+
 ## Observacoes
 
 - A pasta `templates/` guarda os arquivos HTML renderizados pelo Flask.
 - A pasta `static/` guarda CSS e JavaScript servidos diretamente ao navegador.
 - O caminho dos arquivos estaticos e gerado no HTML com `url_for('static', filename='...')`.
 - A exportacao usa `send_file`, entao quem define a pasta final de download e o navegador.
+- O cruzamento Magento + Ativo usa `outer merge`, preservando registros dos dois bancos mesmo quando nao ha correspondencia.
 
 ## Licenca
 

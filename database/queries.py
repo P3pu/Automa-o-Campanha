@@ -278,7 +278,7 @@ ORDER BY
     c.id_pedido;
     """
     try:
-        print(f"[Ativo] Executando query para {len(str(id_evento).split(','))} evento(s): {id_evento}")
+        print(f"[Ativo] Executando query para {len(ids_evento)} evento(s): {ids_evento}")
         cursor.execute(query, ids_evento)
         dados = cursor.fetchall()
         print(f"[Ativo] {len(dados)} linha(s) retornada(s).")
@@ -353,4 +353,3 @@ def obter_eventos_ativos() -> list:
     cursor.close()
     conn.close()
     return eventos
-

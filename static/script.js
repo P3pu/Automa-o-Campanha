@@ -1,10 +1,16 @@
-const campoEvento = document.querySelector("#evento_magento");
-const botaoAdicionar = document.querySelector("#adicionar_evento");
-const listaSelecionados = document.querySelector("#eventos_selecionados");
-const botoesExportacao = document.querySelectorAll(".acoes-exportacao button");
-const form = document.querySelector("form");
+const paineis = document.querySelectorAll(".painel");
+const itensMenu = document.querySelectorAll(".menu-item");
+const seletoresEvento = document.querySelectorAll("[data-event-picker]");
 
-const eventosSelecionados = new Map();
+function ativarPainel(idPainel) {
+    paineis.forEach((painel) => {
+        painel.classList.toggle("ativo", painel.id === idPainel);
+    });
+
+    itensMenu.forEach((item) => {
+        item.classList.toggle("ativo", item.dataset.panelTarget === idPainel);
+    });
+}
 
 function extrairIdEvento(valor) {
     if (!valor) {
@@ -21,23 +27,31 @@ function separarEventosDigitados(valor) {
         .filter(Boolean);
 }
 
-function atualizarBotoesExportacao() {
-    const possuiEventos = eventosSelecionados.size > 0;
-
-    botoesExportacao.forEach((botao) => {
-        botao.disabled = !possuiEventos;
-    });
-}
-
-function criarInputEvento(idEvento) {
+function criarInputEvento(idEvento, nomeCampo) {
     const input = document.createElement("input");
     input.type = "hidden";
-    input.name = "evento_magento_ids";
+    input.name = nomeCampo;
     input.value = idEvento;
     return input;
 }
 
-function criarItemEvento(idEvento, textoEvento) {
+function atualizarBotoesFormulario(form) {
+    const seletoresDoForm = form.querySelectorAll("[data-event-picker]");
+    const todosComEvento = Array.from(seletoresDoForm).every((seletor) => {
+        const campoEvento = seletor.querySelector("[data-event-input]");
+        const possuiSelecionados = seletor.eventosSelecionados && seletor.eventosSelecionados.size > 0;
+        const possuiTextoDigitado = campoEvento.value.trim().length > 0;
+        return possuiSelecionados || possuiTextoDigitado;
+    });
+
+    form.querySelectorAll(".acoes-exportacao button").forEach((botao) => {
+        botao.disabled = !todosComEvento;
+    });
+}
+
+function criarItemEvento(seletor, idEvento, textoEvento) {
+    const listaSelecionados = seletor.querySelector("[data-selected-events]");
+    const nomeCampo = listaSelecionados.dataset.hiddenName;
     const item = document.createElement("div");
     item.className = "evento-selecionado";
     item.dataset.eventoId = idEvento;
@@ -52,56 +66,85 @@ function criarItemEvento(idEvento, textoEvento) {
     botaoRemover.setAttribute("aria-label", `Remover evento ${idEvento}`);
 
     botaoRemover.addEventListener("click", () => {
-        eventosSelecionados.delete(idEvento);
+        seletor.eventosSelecionados.delete(idEvento);
         item.remove();
-        atualizarBotoesExportacao();
+        atualizarBotoesFormulario(seletor.closest("form"));
     });
 
-    item.append(texto, botaoRemover, criarInputEvento(idEvento));
+    item.append(texto, botaoRemover, criarInputEvento(idEvento, nomeCampo));
     return item;
 }
 
-function adicionarEvento() {
+function adicionarEvento(seletor) {
+    const campoEvento = seletor.querySelector("[data-event-input]");
+    const listaSelecionados = seletor.querySelector("[data-selected-events]");
     const eventosDigitados = separarEventosDigitados(campoEvento.value);
     let quantidadeAdicionada = 0;
 
     eventosDigitados.forEach((textoEvento) => {
         const idEvento = extrairIdEvento(textoEvento);
 
-        if (!idEvento || eventosSelecionados.has(idEvento)) {
+        if (!idEvento || seletor.eventosSelecionados.has(idEvento)) {
             return;
         }
 
         const textoExibicao = textoEvento === idEvento ? `Evento ${idEvento}` : textoEvento;
-        eventosSelecionados.set(idEvento, textoExibicao);
-        listaSelecionados.appendChild(criarItemEvento(idEvento, textoExibicao));
+        seletor.eventosSelecionados.set(idEvento, textoExibicao);
+        listaSelecionados.appendChild(criarItemEvento(seletor, idEvento, textoExibicao));
         quantidadeAdicionada += 1;
     });
 
     if (quantidadeAdicionada > 0) {
-        atualizarBotoesExportacao();
+        atualizarBotoesFormulario(seletor.closest("form"));
     }
 
     campoEvento.value = "";
     campoEvento.focus();
 }
 
-botaoAdicionar.addEventListener("click", adicionarEvento);
+itensMenu.forEach((item) => {
+    item.addEventListener("click", () => {
+        ativarPainel(item.dataset.panelTarget);
+    });
+});
 
-campoEvento.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
+seletoresEvento.forEach((seletor) => {
+    const campoEvento = seletor.querySelector("[data-event-input]");
+    const botaoAdicionar = seletor.querySelector("[data-add-event]");
+    seletor.eventosSelecionados = new Map();
+
+    botaoAdicionar.addEventListener("click", () => adicionarEvento(seletor));
+
+    campoEvento.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            adicionarEvento(seletor);
+        }
+    });
+
+    campoEvento.addEventListener("input", () => atualizarBotoesFormulario(seletor.closest("form")));
+
+    atualizarBotoesFormulario(seletor.closest("form"));
+});
+
+document.querySelectorAll("form").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+        const seletoresDoForm = form.querySelectorAll("[data-event-picker]");
+        const todosComEvento = Array.from(seletoresDoForm).every((seletor) => {
+            const campoEvento = seletor.querySelector("[data-event-input]");
+            const possuiSelecionados = seletor.eventosSelecionados && seletor.eventosSelecionados.size > 0;
+            const possuiTextoDigitado = campoEvento.value.trim().length > 0;
+            return possuiSelecionados || possuiTextoDigitado;
+        });
+
+        if (todosComEvento) {
+            return;
+        }
+
         event.preventDefault();
-        adicionarEvento();
-    }
+        const primeiroVazio = Array.from(seletoresDoForm).find((seletor) => {
+            return !seletor.eventosSelecionados || seletor.eventosSelecionados.size === 0;
+        });
+        primeiroVazio?.querySelector("[data-event-input]")?.focus();
+    });
 });
-
-form.addEventListener("submit", (event) => {
-    if (event.submitter === botaoAdicionar || eventosSelecionados.size > 0) {
-        return;
-    }
-
-    event.preventDefault();
-    campoEvento.focus();
-});
-
-atualizarBotoesExportacao();

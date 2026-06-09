@@ -9,26 +9,85 @@ body {
     margin: 0;
 }
 
-main {
-    width: min(920px, calc(100% - 32px));
-    margin: 48px auto;
+.layout {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    min-height: 100vh;
+}
+
+.sidebar {
+    border-right: 1px solid #d1d5db;
+    padding: 24px 16px;
+    background: #ffffff;
 }
 
 h1 {
     margin: 0 0 24px;
-    font-size: 32px;
+    font-size: 24px;
     line-height: 1.2;
 }
 
-.campo-evento {
+.menu-sidebar {
     display: grid;
     gap: 8px;
-    max-width: 680px;
 }
 
-form {
+.menu-item {
+    justify-content: flex-start;
+    width: 100%;
+    border-color: transparent;
+    color: #334155;
+    background: transparent;
+}
+
+.menu-item:hover,
+.menu-item.ativo {
+    color: #1d4ed8;
+    background: #eff6ff;
+}
+
+.conteudo {
+    width: min(1180px, calc(100% - 48px));
+    margin: 40px auto;
+}
+
+.painel {
+    display: none;
+}
+
+.painel.ativo {
     display: grid;
-    gap: 8px;
+    gap: 24px;
+}
+
+.cabecalho-painel {
+    display: grid;
+    gap: 6px;
+}
+
+h2 {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.2;
+}
+
+.cabecalho-painel p,
+.ajuda {
+    margin: 0;
+    color: #4b5563;
+    font-size: 14px;
+}
+
+form,
+.grupo-evento {
+    display: grid;
+    gap: 10px;
+}
+
+.duas-colunas {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
 }
 
 label {
@@ -42,10 +101,9 @@ button {
 
 .linha-evento {
     display: grid;
-    grid-template-columns: minmax(260px, 1fr) auto auto;
-    gap: 12px;
+    grid-template-columns: minmax(220px, 1fr) auto;
+    gap: 10px;
     align-items: stretch;
-    max-width: 980px;
 }
 
 input {
@@ -65,10 +123,15 @@ input:focus {
 
 .acoes-exportacao {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
 }
 
 button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
     border: 1px solid #2563eb;
     border-radius: 6px;
     padding: 0 14px;
@@ -97,9 +160,7 @@ button:focus {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    max-width: 980px;
     min-height: 36px;
-    margin-top: 4px;
 }
 
 .evento-selecionado {
@@ -132,29 +193,30 @@ button:focus {
     background: #e2e8f0;
 }
 
-.ajuda {
-    margin: 0;
-    color: #4b5563;
-    font-size: 14px;
-}
-
 .erro {
-    max-width: 680px;
-    margin: 16px 0 0;
+    max-width: 760px;
+    margin: 0;
     color: #991b1b;
     font-size: 14px;
 }
 
-@media (max-width: 760px) {
-    .linha-evento {
+@media (max-width: 900px) {
+    .layout {
         grid-template-columns: 1fr;
     }
 
-    .acoes-exportacao {
-        flex-wrap: wrap;
+    .sidebar {
+        border-right: 0;
+        border-bottom: 1px solid #d1d5db;
     }
 
-    button {
-        min-height: 44px;
+    .conteudo {
+        width: min(100% - 32px, 1180px);
+        margin: 24px auto;
+    }
+
+    .duas-colunas,
+    .linha-evento {
+        grid-template-columns: 1fr;
     }
 }

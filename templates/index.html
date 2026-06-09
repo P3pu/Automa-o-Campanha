@@ -8,53 +8,168 @@
     <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </head>
 <body>
-    <main>
-        <h1>Portal Campanha</h1>
+    <div class="layout">
+        <aside class="sidebar" aria-label="Fontes de dados">
+            <h1>Portal Campanha</h1>
+            <nav class="menu-sidebar">
+                <button class="menu-item ativo" type="button" data-panel-target="painel_magento">Magento</button>
+                <button class="menu-item" type="button" data-panel-target="painel_ativo">Ativo</button>
+                <button class="menu-item" type="button" data-panel-target="painel_magento_ativo">Magento + Ativo</button>
+            </nav>
+        </aside>
 
-        <form method="post">
-            <label for="evento_magento">Evento Magento</label>
-
-            <div class="linha-evento">
-                <input
-                    id="evento_magento"
-                    name="evento_magento"
-                    type="search"
-                    list="eventos_magento"
-                    placeholder="Pesquise ou digite IDs separados por vírgula"
-                    autocomplete="off"
-                >
-                <button type="button" id="adicionar_evento">
-                    Adicionar evento
-                </button>
-                <datalist id="eventos_magento">
-                    {% for evento in eventos %}
-                        <option value="{{ evento.id }} - {{ evento.nome }}{% if evento.data %} - {{ evento.data }}{% endif %}"></option>
-                    {% endfor %}
-                </datalist>
-
-                <div class="acoes-exportacao">
-                    <button type="submit" formaction="{{ url_for('exportar_dados_brutos') }}" disabled>
-                        Exportar dados brutos
-                    </button>
-                    <button type="submit" formaction="{{ url_for('exportar_dados_limpos') }}" disabled>
-                        Exportar dados limpos
-                    </button>
+        <main class="conteudo">
+            <section id="painel_magento" class="painel ativo" aria-labelledby="titulo_magento">
+                <div class="cabecalho-painel">
+                    <h2 id="titulo_magento">Magento</h2>
+                    <p>{{ eventos_magento|length }} evento(s) carregado(s) do Magento.</p>
                 </div>
-            </div>
 
-            <div id="eventos_selecionados" class="eventos-selecionados" aria-live="polite"></div>
+                <form method="post">
+                    <div class="grupo-evento" data-event-picker>
+                        <label for="evento_magento">Evento Magento</label>
+                        <div class="linha-evento">
+                            <input
+                                id="evento_magento"
+                                name="evento_magento"
+                                type="search"
+                                list="eventos_magento"
+                                placeholder="Pesquise ou digite IDs separados por vírgula"
+                                autocomplete="off"
+                                data-event-input
+                            >
+                            <button type="button" data-add-event>Adicionar evento</button>
+                            <datalist id="eventos_magento">
+                                {% for evento in eventos_magento %}
+                                    <option value="{{ evento.id }} - {{ evento.nome }}{% if evento.data %} - {{ evento.data }}{% endif %}"></option>
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="eventos-selecionados" aria-live="polite" data-selected-events data-hidden-name="evento_magento_ids"></div>
+                    </div>
 
-            <div class="campo-evento">
-                <p class="ajuda">
-                    {{ eventos|length }} evento(s) carregado(s) do Magento.
-                    Selecione eventos ou digite IDs separados por vírgula antes de exportar.
-                </p>
-            </div>
-        </form>
+                    <div class="acoes-exportacao">
+                        <button type="submit" formaction="{{ url_for('exportar_dados_brutos') }}" disabled>
+                            Exportar dados brutos
+                        </button>
+                        <button type="submit" formaction="{{ url_for('exportar_dados_limpos') }}" disabled>
+                            Exportar dados limpos
+                        </button>
+                    </div>
+                </form>
 
-        {% if erro_eventos %}
-            <p class="erro">{{ erro_eventos }}</p>
-        {% endif %}
-    </main>
+                {% if erro_eventos_magento %}
+                    <p class="erro">{{ erro_eventos_magento }}</p>
+                {% endif %}
+            </section>
+
+            <section id="painel_ativo" class="painel" aria-labelledby="titulo_ativo">
+                <div class="cabecalho-painel">
+                    <h2 id="titulo_ativo">Ativo</h2>
+                    <p>{{ eventos_ativo|length }} evento(s) carregado(s) do Ativo.</p>
+                </div>
+
+                <form method="post">
+                    <div class="grupo-evento" data-event-picker>
+                        <label for="evento_ativo">Evento Ativo</label>
+                        <div class="linha-evento">
+                            <input
+                                id="evento_ativo"
+                                name="evento_ativo"
+                                type="search"
+                                list="eventos_ativo"
+                                placeholder="Pesquise ou digite IDs separados por vírgula"
+                                autocomplete="off"
+                                data-event-input
+                            >
+                            <button type="button" data-add-event>Adicionar evento</button>
+                            <datalist id="eventos_ativo">
+                                {% for evento in eventos_ativo %}
+                                    <option value="{{ evento.id }} - {{ evento.nome }}{% if evento.data %} - {{ evento.data }}{% endif %}"></option>
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="eventos-selecionados" aria-live="polite" data-selected-events data-hidden-name="evento_ativo_ids"></div>
+                    </div>
+
+                    <div class="acoes-exportacao">
+                        <button type="submit" formaction="{{ url_for('exportar_dados_brutos_ativo') }}" disabled>
+                            Exportar dados brutos
+                        </button>
+                    </div>
+                </form>
+
+                {% if erro_eventos_ativo %}
+                    <p class="erro">{{ erro_eventos_ativo }}</p>
+                {% endif %}
+            </section>
+
+            <section id="painel_magento_ativo" class="painel" aria-labelledby="titulo_magento_ativo">
+                <div class="cabecalho-painel">
+                    <h2 id="titulo_magento_ativo">Magento + Ativo</h2>
+                    <p>Selecione manualmente eventos dos dois bancos para cruzar inscritos pelo SKU.</p>
+                </div>
+
+                <form method="post" action="{{ url_for('exportar_magento_ativo') }}">
+                    <div class="duas-colunas">
+                        <div class="grupo-evento" data-event-picker>
+                            <label for="evento_magento_merge">Evento Magento</label>
+                            <div class="linha-evento">
+                                <input
+                                    id="evento_magento_merge"
+                                    name="evento_magento_merge"
+                                    type="search"
+                                    list="eventos_magento_merge"
+                                    placeholder="Pesquise ou digite IDs separados por vírgula"
+                                    autocomplete="off"
+                                    data-event-input
+                                >
+                                <button type="button" data-add-event>Adicionar evento</button>
+                                <datalist id="eventos_magento_merge">
+                                    {% for evento in eventos_magento %}
+                                        <option value="{{ evento.id }} - {{ evento.nome }}{% if evento.data %} - {{ evento.data }}{% endif %}"></option>
+                                    {% endfor %}
+                                </datalist>
+                            </div>
+                            <div class="eventos-selecionados" aria-live="polite" data-selected-events data-hidden-name="evento_magento_merge_ids"></div>
+                        </div>
+
+                        <div class="grupo-evento" data-event-picker>
+                            <label for="evento_ativo_merge">Evento Ativo</label>
+                            <div class="linha-evento">
+                                <input
+                                    id="evento_ativo_merge"
+                                    name="evento_ativo_merge"
+                                    type="search"
+                                    list="eventos_ativo_merge"
+                                    placeholder="Pesquise ou digite IDs separados por vírgula"
+                                    autocomplete="off"
+                                    data-event-input
+                                >
+                                <button type="button" data-add-event>Adicionar evento</button>
+                                <datalist id="eventos_ativo_merge">
+                                    {% for evento in eventos_ativo %}
+                                        <option value="{{ evento.id }} - {{ evento.nome }}{% if evento.data %} - {{ evento.data }}{% endif %}"></option>
+                                    {% endfor %}
+                                </datalist>
+                            </div>
+                            <div class="eventos-selecionados" aria-live="polite" data-selected-events data-hidden-name="evento_ativo_merge_ids"></div>
+                        </div>
+                    </div>
+
+                    <div class="acoes-exportacao">
+                        <button type="submit" disabled>Exportar Magento + Ativo</button>
+                    </div>
+                </form>
+
+                {% if erro_eventos_magento %}
+                    <p class="erro">{{ erro_eventos_magento }}</p>
+                {% endif %}
+                {% if erro_eventos_ativo %}
+                    <p class="erro">{{ erro_eventos_ativo }}</p>
+                {% endif %}
+            </section>
+        </main>
+    </div>
 </body>
 </html>
