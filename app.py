@@ -6,6 +6,7 @@ import pandas as pd
 from database.queries import buscar_dados_magento, obter_eventos_ativos, obter_eventos_magento
 from tratamento import (
     gerar_dados_brutos_ativo,
+    gerar_planilhas_limpeza_ativo,
     gerar_planilhas_limpeza_magento,
     gerar_planilhas_magento_ativo,
     montar_dataframe_magento,
@@ -161,6 +162,18 @@ def exportar_dados_brutos_ativo():
     df = gerar_dados_brutos_ativo(ids_eventos)
     sufixo = _formatar_nome_exportacao(ids_eventos)
     return _responder_excel(df, f"dados_brutos_ativo_{sufixo}.xlsx")
+
+
+@app.route('/exportar/ativo/dados-limpos', methods=['POST'])
+def exportar_dados_limpos_ativo():
+    ids_eventos = _obter_ids_eventos_formulario('evento_ativo', 'evento_ativo_ids')
+
+    if not ids_eventos:
+        return redirect(url_for('index'))
+
+    planilhas = gerar_planilhas_limpeza_ativo(ids_eventos)
+    sufixo = _formatar_nome_exportacao(ids_eventos)
+    return _responder_excel_abas(planilhas, f"dados_limpos_ativo_{sufixo}.xlsx")
 
 
 @app.route('/exportar/magento-ativo', methods=['POST'])

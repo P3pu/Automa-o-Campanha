@@ -9,7 +9,7 @@ O Portal Campanha ajuda a preparar bases de inscritos de eventos, reduzindo trab
 A interface web possui uma sidebar com tres fluxos:
 
 - `Magento`: consulta eventos Magento, exporta dados brutos e dados limpos.
-- `Ativo`: consulta eventos Ativo e exporta dados brutos.
+- `Ativo`: consulta eventos Ativo, exporta dados brutos e dados limpos.
 - `Magento + Ativo`: consulta eventos dos dois bancos e cruza os inscritos pelo SKU.
 
 ## Tecnologias Utilizadas
@@ -88,17 +88,19 @@ obter_eventos_ativos()
 buscar_dados_ativo(ids_eventos)
 ```
 
-Rota:
+Rotas:
 
 ```text
 POST /exportar/ativo/dados-brutos
+POST /exportar/ativo/dados-limpos
 ```
 
-Exportacao:
+Exportacoes:
 
 - `dados_brutos_ativo_*.xlsx`: dados brutos retornados do Ativo.
+- `dados_limpos_ativo_*.xlsx`: Excel com as abas `Dados Limpos` e `Removidos`.
 
-Por enquanto, o Ativo nao aplica regras de limpeza.
+A aba `Removidos` possui a coluna `Regra Remocao`, indicando por qual regra o registro foi retirado.
 
 ### Magento + Ativo
 
@@ -136,12 +138,25 @@ As regras atuais removem registros por:
 - `Evento`
 - `Local Inscricao`
 - `Balcao`
+- `Valor`: igual a `0`
 
 Se um registro cair em mais de uma regra, os motivos aparecem juntos:
 
 ```text
 Cupom; E-mail; Categoria
 ```
+
+## Regras de Limpeza Ativo
+
+As regras atuais removem registros por:
+
+- `Classificacao Cupom`: contem `grupos`.
+- `Local Inscricao`: contem `Balcao`.
+- `Categoria`: contem `cortesia`, `cortesias`, `grupos`, `grupo`, `saude corporativa`, `corporativa`, `patrocinador` ou `convidado`.
+- `E-mail`: contem `@nortemkt.com`, `@ativo.com`, `@cscdoesporte.com`, `@test.com`, `@teste`, `teste`, `testes`, `grupo` ou `grupos`.
+- `Valor`: igual a `0`.
+
+As comparacoes de texto ignoram diferencas entre maiusculas/minusculas e acentos.
 
 ## Pre-requisitos
 
@@ -225,8 +240,10 @@ Em `tratamento.py`:
 montar_dataframe_magento(dados)
 montar_dataframe_ativo(dados)
 separar_dados_magento_por_limpeza(dados)
+separar_dados_ativo_por_limpeza(dados)
 gerar_planilhas_limpeza_magento(id_evento)
 gerar_dados_brutos_ativo(id_evento)
+gerar_planilhas_limpeza_ativo(id_evento)
 juntar_magento_ativo(df_magento, df_ativo)
 gerar_planilhas_magento_ativo(ids_magento, ids_ativo)
 ```

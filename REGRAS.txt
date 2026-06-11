@@ -6,6 +6,7 @@ SWITCH(
     CONTAINSSTRING(Tb_Base[Categoria], "Grupos") || 
     CONTAINSSTRING(Tb_Base[Etiqueta], "GRUPOS") || 
     CONTAINSSTRING(Tb_Base[Classificacao Cupom], "Grupos"), 
+    CONTAINSSTRING(Tb_Base[Categoria], "Saude Corportativa"),
     "Company",
 
     // 2ª CONDIÇÃO (Cortesias): Agrupa todos os critérios que resultam em "Cortesia".
