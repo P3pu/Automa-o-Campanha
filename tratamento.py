@@ -113,8 +113,7 @@ VALORES_REMOVER_CATEGORIA = [
     "teste",
     "testes",
 ]
-VALORES_REMOVER_EVENTO = ["cortesia", "cortesias", "grupos", "grupo", "teste", "testes"]
-
+VALORES_REMOVER_CLASSIFICACAO_CUPOM = ["grupos"]
 VALORES_REMOVER_CLASSIFICACAO_CUPOM_ATIVO = ["grupos"]
 VALORES_REMOVER_LOCAL_INSCRICAO_ATIVO = ["balcão"]
 VALORES_REMOVER_CATEGORIA_ATIVO = [
@@ -179,47 +178,26 @@ def montar_dataframe_ativo(dados):
     return pd.DataFrame(dados, columns=COLUNAS_ATIVO)
 
 
-def _criar_chave_sku(df, prefixo):
-    sku = df["SKU"].astype("string").str.strip()
-    chave = sku.mask(sku.isna() | sku.eq(""))
-    sem_sku = chave.isna()
-    chave.loc[sem_sku] = [f"__{prefixo}_SEM_SKU_{indice}" for indice in df.index[sem_sku]]
-    return sku, chave
-
-
-def preparar_magento_para_merge(df_magento):
+def preparar_magento_para_juncao(df_magento):
     df = df_magento.copy()
-    df["SKU"] = df["SKU DO EVENTO "]
-    df["SKU"], df["_SKU_MERGE"] = _criar_chave_sku(df, "MAGENTO")
-    return df
+    df = df.rename(
+        columns={
+            "SKU DO EVENTO ": "SKU",
+            "Status Confirmado": "Status Inscrição",
+            "Classificacao Cupom": "Classificação Cupom",
+        }
+    )
+    return df.reindex(columns=COLUNAS_ATIVO)
 
 
-def preparar_ativo_para_merge(df_ativo):
-    df = df_ativo.copy()
-    df["SKU"], df["_SKU_MERGE"] = _criar_chave_sku(df, "ATIVO")
-    return df
+def preparar_ativo_para_juncao(df_ativo):
+    return df_ativo.copy().reindex(columns=COLUNAS_ATIVO)
 
 
 def juntar_magento_ativo(df_magento, df_ativo):
-    magento = preparar_magento_para_merge(df_magento)
-    ativo = preparar_ativo_para_merge(df_ativo)
-
-    df_merge = magento.merge(
-        ativo,
-        on="_SKU_MERGE",
-        how="outer",
-        suffixes=("_magento", "_ativo"),
-        indicator=True,
-    )
-
-    sku_magento = df_merge.get("SKU_magento")
-    sku_ativo = df_merge.get("SKU_ativo")
-
-    if sku_magento is not None and sku_ativo is not None:
-        df_merge.insert(0, "SKU", sku_magento.combine_first(sku_ativo))
-        df_merge = df_merge.drop(columns=["SKU_magento", "SKU_ativo", "_SKU_MERGE"])
-
-    return df_merge
+    magento = preparar_magento_para_juncao(df_magento)
+    ativo = preparar_ativo_para_juncao(df_ativo)
+    return pd.concat([magento, ativo], ignore_index=True)
 
 
 def _adicionar_motivo_remocao(motivos, mascara, motivo):
@@ -274,9 +252,9 @@ def separar_dados_magento_por_limpeza(dados):
         "|".join(VALORES_REMOVER_CATEGORIA),
         na=False,
     )
-    remover_por_evento = df["Evento"].str.lower().str.contains(
-        "|".join(VALORES_REMOVER_EVENTO),
-        na=False,
+    remover_por_classificacao_cupom = _contem_qualquer_valor(
+        df["Classificacao Cupom"],
+        VALORES_REMOVER_CLASSIFICACAO_CUPOM,
     )
     remover_por_local_inscricao = df["Local Inscrição"].notna()
     remover_por_balcao = df["Balcão"].notna()
@@ -287,7 +265,7 @@ def separar_dados_magento_por_limpeza(dados):
     _adicionar_motivo_remocao(motivos, remover_por_cupom, "Cupom")
     _adicionar_motivo_remocao(motivos, remover_por_email, "E-mail")
     _adicionar_motivo_remocao(motivos, remover_por_categoria, "Categoria")
-    _adicionar_motivo_remocao(motivos, remover_por_evento, "Evento")
+    _adicionar_motivo_remocao(motivos, remover_por_classificacao_cupom, "Classificacao Cupom")
     _adicionar_motivo_remocao(motivos, remover_por_local_inscricao, "Local Inscrição")
     _adicionar_motivo_remocao(motivos, remover_por_balcao, "Balcão")
     _adicionar_motivo_remocao(motivos, remover_por_valor_zero, "Valor = 0")
@@ -297,7 +275,7 @@ def separar_dados_magento_por_limpeza(dados):
         | remover_por_cupom
         | remover_por_email
         | remover_por_categoria
-        | remover_por_evento
+        | remover_por_classificacao_cupom
         | remover_por_local_inscricao
         | remover_por_balcao
         | remover_por_valor_zero
@@ -395,18 +373,37 @@ def gerar_planilhas_limpeza_ativo(id_evento):
     }
 
 
-def gerar_planilhas_magento_ativo(ids_magento, ids_ativo):
-    df_magento = montar_dataframe_magento(buscar_dados_magento(ids_magento))
-    df_ativo = montar_dataframe_ativo(buscar_dados_ativo(ids_ativo))
-    df_merge = juntar_magento_ativo(df_magento, df_ativo)
+def gerar_planilhas_magento_ativo_brutas(ids_magento, ids_ativo):
+    dados_magento = buscar_dados_magento(ids_magento)
+    dados_ativo = buscar_dados_ativo(ids_ativo)
 
-    somente_magento = df_merge[df_merge["_merge"] == "left_only"].copy()
-    somente_ativo = df_merge[df_merge["_merge"] == "right_only"].copy()
+    df_magento_bruto = montar_dataframe_magento(dados_magento)
+    df_ativo_bruto = montar_dataframe_ativo(dados_ativo)
+    df_juncao = juntar_magento_ativo(df_magento_bruto, df_ativo_bruto)
 
     return {
-        "Magento Bruto": df_magento,
-        "Ativo Bruto": df_ativo,
-        "Magento + Ativo": df_merge,
-        "Somente Magento": somente_magento,
-        "Somente Ativo": somente_ativo,
+        "Magento Bruto": df_magento_bruto,
+        "Ativo Bruto": df_ativo_bruto,
+        "Magento + Ativo": df_juncao,
+    }
+
+
+def gerar_planilhas_magento_ativo(ids_magento, ids_ativo):
+    dados_magento = buscar_dados_magento(ids_magento)
+    dados_ativo = buscar_dados_ativo(ids_ativo)
+
+    df_magento_bruto = montar_dataframe_magento(dados_magento)
+    df_ativo_bruto = montar_dataframe_ativo(dados_ativo)
+    df_magento_limpo, df_magento_removidos = separar_dados_magento_por_limpeza(dados_magento)
+    df_ativo_limpo, df_ativo_removidos = separar_dados_ativo_por_limpeza(dados_ativo)
+    df_juncao = juntar_magento_ativo(df_magento_limpo, df_ativo_limpo)
+
+    return {
+        "Magento Bruto": df_magento_bruto,
+        "Ativo Bruto": df_ativo_bruto,
+        "Magento Limpo": df_magento_limpo,
+        "Ativo Limpo": df_ativo_limpo,
+        "Magento + Ativo": df_juncao,
+        "Magento Removidos": df_magento_removidos,
+        "Ativo Removidos": df_ativo_removidos,
     }

@@ -9,6 +9,7 @@ from tratamento import (
     gerar_planilhas_limpeza_ativo,
     gerar_planilhas_limpeza_magento,
     gerar_planilhas_magento_ativo,
+    gerar_planilhas_magento_ativo_brutas,
     montar_dataframe_magento,
 )
 
@@ -65,6 +66,18 @@ def _formatar_nome_exportacao(ids_eventos):
         return ids_eventos[0]
 
     return f"{len(ids_eventos)}_eventos"
+
+
+def _obter_ids_magento_ativo_formulario():
+    ids_magento = _obter_ids_eventos_formulario(
+        'evento_magento_merge',
+        'evento_magento_merge_ids',
+    )
+    ids_ativo = _obter_ids_eventos_formulario(
+        'evento_ativo_merge',
+        'evento_ativo_merge_ids',
+    )
+    return ids_magento, ids_ativo
 
 
 def _responder_excel(df, nome_arquivo):
@@ -176,16 +189,26 @@ def exportar_dados_limpos_ativo():
     return _responder_excel_abas(planilhas, f"dados_limpos_ativo_{sufixo}.xlsx")
 
 
+@app.route('/exportar/magento-ativo/dados-brutos', methods=['POST'])
+def exportar_magento_ativo_dados_brutos():
+    ids_magento, ids_ativo = _obter_ids_magento_ativo_formulario()
+
+    if not ids_magento or not ids_ativo:
+        return redirect(url_for('index'))
+
+    planilhas = gerar_planilhas_magento_ativo_brutas(ids_magento, ids_ativo)
+    sufixo_magento = _formatar_nome_exportacao(ids_magento)
+    sufixo_ativo = _formatar_nome_exportacao(ids_ativo)
+    return _responder_excel_abas(
+        planilhas,
+        f"dados_brutos_magento_ativo_{sufixo_magento}_{sufixo_ativo}.xlsx",
+    )
+
+
 @app.route('/exportar/magento-ativo', methods=['POST'])
-def exportar_magento_ativo():
-    ids_magento = _obter_ids_eventos_formulario(
-        'evento_magento_merge',
-        'evento_magento_merge_ids',
-    )
-    ids_ativo = _obter_ids_eventos_formulario(
-        'evento_ativo_merge',
-        'evento_ativo_merge_ids',
-    )
+@app.route('/exportar/magento-ativo/dados-limpos', methods=['POST'])
+def exportar_magento_ativo_dados_limpos():
+    ids_magento, ids_ativo = _obter_ids_magento_ativo_formulario()
 
     if not ids_magento or not ids_ativo:
         return redirect(url_for('index'))
@@ -195,7 +218,7 @@ def exportar_magento_ativo():
     sufixo_ativo = _formatar_nome_exportacao(ids_ativo)
     return _responder_excel_abas(
         planilhas,
-        f"magento_ativo_{sufixo_magento}_{sufixo_ativo}.xlsx",
+        f"dados_limpos_magento_ativo_{sufixo_magento}_{sufixo_ativo}.xlsx",
     )
 
 

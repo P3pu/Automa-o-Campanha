@@ -1,6 +1,6 @@
 # Portal Campanha
 
-Aplicacao Flask para consultar eventos dos bancos Magento/Running Land e Ativo, selecionar um ou varios eventos manualmente e exportar planilhas Excel com dados brutos, dados limpos ou cruzamentos por SKU.
+Aplicacao Flask para consultar eventos dos bancos Magento/Running Land e Ativo, selecionar um ou varios eventos manualmente e exportar planilhas Excel com dados brutos, dados limpos ou bases unificadas.
 
 ## Sobre o Projeto
 
@@ -10,7 +10,7 @@ A interface web possui uma sidebar com tres fluxos:
 
 - `Magento`: consulta eventos Magento, exporta dados brutos e dados limpos.
 - `Ativo`: consulta eventos Ativo, exporta dados brutos e dados limpos.
-- `Magento + Ativo`: consulta eventos dos dois bancos e cruza os inscritos pelo SKU.
+- `Magento + Ativo`: consulta eventos dos dois bancos e junta os inscritos em uma base unica com colunas padronizadas.
 
 ## Tecnologias Utilizadas
 
@@ -104,28 +104,44 @@ A aba `Removidos` possui a coluna `Regra Remocao`, indicando por qual regra o re
 
 ### Magento + Ativo
 
-Neste fluxo, o usuario seleciona manualmente eventos Magento e eventos Ativo. Depois, o sistema:
+Neste fluxo, o usuario seleciona manualmente eventos Magento e eventos Ativo e escolhe entre exportar dados brutos ou dados limpos.
+
+Na exportacao de dados brutos, o sistema:
 
 1. Busca inscritos do Magento.
 2. Busca inscritos do Ativo.
-3. Converte as duas bases para DataFrames.
-4. Padroniza a coluna `SKU`.
-5. Faz um `outer merge` pelo SKU.
+3. Padroniza a coluna `SKU`.
+4. Padroniza colunas equivalentes, como `SKU DO EVENTO` para `SKU`.
+5. Junta as linhas do Magento e do Ativo na mesma base, sem aplicar regras de limpeza.
 6. Exporta abas de auditoria.
 
-Rota:
+Na exportacao de dados limpos, o sistema aplica as regras de limpeza nas duas bases antes de juntar os registros.
+
+Rotas:
 
 ```text
 POST /exportar/magento-ativo
+POST /exportar/magento-ativo/dados-brutos
+POST /exportar/magento-ativo/dados-limpos
 ```
 
-Abas exportadas:
+Abas exportadas nos dados brutos:
 
 - `Magento Bruto`: todos os registros retornados do Magento.
 - `Ativo Bruto`: todos os registros retornados do Ativo.
-- `Magento + Ativo`: resultado do cruzamento por SKU.
-- `Somente Magento`: registros sem correspondencia no Ativo.
-- `Somente Ativo`: registros sem correspondencia no Magento.
+- `Magento + Ativo`: registros Magento e Ativo juntos, com colunas padronizadas.
+
+Abas exportadas nos dados limpos:
+
+- `Magento Bruto`: todos os registros retornados do Magento.
+- `Ativo Bruto`: todos os registros retornados do Ativo.
+- `Magento Limpo`: registros Magento apos as regras de remocao.
+- `Ativo Limpo`: registros Ativo apos as regras de remocao.
+- `Magento + Ativo`: registros limpos de Magento e Ativo juntos, com colunas padronizadas.
+- `Magento Removidos`: registros Magento removidos pelas regras.
+- `Ativo Removidos`: registros Ativo removidos pelas regras.
+
+No fluxo `Magento + Ativo`, a juncao usa as regras de remocao de `Etiqueta`, `Cupom`, `E-mail`, `Categoria`, `Local Inscricao`, `Valor` e `Classificacao Cupom`, conforme a base onde cada coluna existe.
 
 ## Regras de Limpeza Magento
 
@@ -135,7 +151,7 @@ As regras atuais removem registros por:
 - `Cupom`
 - `E-mail`
 - `Categoria`
-- `Evento`
+- `Classificacao Cupom`
 - `Local Inscricao`
 - `Balcao`
 - `Valor`: igual a `0`
@@ -254,7 +270,7 @@ gerar_planilhas_magento_ativo(ids_magento, ids_ativo)
 - A pasta `static/` guarda CSS e JavaScript servidos diretamente ao navegador.
 - O caminho dos arquivos estaticos e gerado no HTML com `url_for('static', filename='...')`.
 - A exportacao usa `send_file`, entao quem define a pasta final de download e o navegador.
-- O cruzamento Magento + Ativo usa `outer merge`, preservando registros dos dois bancos mesmo quando nao ha correspondencia.
+- A juncao Magento + Ativo empilha os registros dos dois bancos em uma unica base, padronizando colunas equivalentes como `SKU DO EVENTO` para `SKU`.
 
 ## Licenca
 

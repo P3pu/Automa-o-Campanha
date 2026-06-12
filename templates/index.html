@@ -113,7 +113,7 @@
                     <p>Selecione manualmente eventos dos dois bancos para cruzar inscritos pelo SKU.</p>
                 </div>
 
-                <form method="post" action="{{ url_for('exportar_magento_ativo') }}">
+                <form method="post" action="{{ url_for('exportar_magento_ativo_dados_limpos') }}">
                     <div class="duas-colunas">
                         <div class="grupo-evento" data-event-picker>
                             <label for="evento_magento_merge">Evento Magento</label>
@@ -161,7 +161,12 @@
                     </div>
 
                     <div class="acoes-exportacao">
-                        <button type="submit" disabled>Exportar Magento + Ativo</button>
+                        <button type="submit" formaction="{{ url_for('exportar_magento_ativo_dados_brutos') }}" disabled>
+                            Exportar dados brutos
+                        </button>
+                        <button type="submit" formaction="{{ url_for('exportar_magento_ativo_dados_limpos') }}" disabled>
+                            Exportar dados limpos
+                        </button>
                     </div>
                 </form>
 
